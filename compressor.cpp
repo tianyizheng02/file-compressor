@@ -1,12 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <getopt.h>
-
-// ANSI color codes
-const char *RESET = "\033[0m";
-const char *BOLD = "\033[1m";
-const char *UL = "\033[4m";
-const char *BOLD_RED = "\033[1;31m";
+#include "constants.h"
 
 /**
  * Display help menu
@@ -14,9 +9,9 @@ const char *BOLD_RED = "\033[1;31m";
  * @param program Program name (argv[0])
  */
 void show_help(const std::string &program) {
-    std::cout << BOLD << "USAGE: " << program << RESET
-              << " [" << UL << "option" << RESET << "] "
-              << UL << "file-name" << RESET << "\n" << std::endl;
+    std::cout << ansi::BOLD << "USAGE: " << program << ansi::RESET
+              << " [" << ansi::UL << "option" << ansi::RESET << "] "
+              << ansi::UL << "file-name" << ansi::RESET << "\n" << std::endl;
 
     std::cout << std::left << std::setw(4) << "-d"
               << std::setw(16) << "--decompress"
@@ -38,8 +33,9 @@ void show_help(const std::string &program) {
 std::ifstream find_file(const std::string &name) {
     std::ifstream file(name);
     if (!file.is_open()) {
-        std::cout << BOLD_RED << "ERROR: file " << name
-                  << " not found or could not be opened" << RESET << std::endl;
+        std::cout << ansi::BOLD_RED << "ERROR: file " << name
+                  << " not found or could not be opened"
+                  << ansi::RESET << std::endl;
         file.close();
         exit(1);
     }
@@ -76,8 +72,8 @@ void decompress(const std::string &name) {
 
 int main(int argc, char **argv) {
     if (argc == 1) {
-        std::cout << BOLD_RED << "ERROR: No arguments detected" << "\n" << RESET
-                  << std::endl;
+        std::cout << ansi::BOLD_RED << "ERROR: No arguments detected"
+                  << ansi::RESET << "\n" << std::endl;
         show_help(argv[0]);
         return 1;
     }
@@ -106,24 +102,24 @@ int main(int argc, char **argv) {
             show_help(argv[0]);
             return 0;
         default:
-            std::cout << BOLD_RED << "ERROR: Unknown option detected" << RESET
-                      << "\n" << std::endl;
+            std::cout << ansi::BOLD_RED << "ERROR: Unknown option detected"
+                      << ansi::RESET << "\n" << std::endl;
             show_help(argv[0]);
             return 1;
     }
 
     // Multiple options
     if (getopt_long(argc, argv, "dhr", options, nullptr) != -1) {
-        std::cout << BOLD_RED << "ERROR: multiple options detected" << RESET
-                  << "\n" << std::endl;
+        std::cout << ansi::BOLD_RED << "ERROR: multiple options detected"
+                  << ansi::RESET << "\n" << std::endl;
         show_help(argv[0]);
         return 1;
     }
 
     // Option -d or -r with no file name
     if (optind == argc) {
-        std::cout << BOLD_RED << "ERROR: No file detected" << RESET << "\n"
-                  << std::endl;
+        std::cout << ansi::BOLD_RED << "ERROR: No file detected"
+                  << ansi::RESET << "\n" << std::endl;
         show_help(argv[0]);
         return 1;
     }
