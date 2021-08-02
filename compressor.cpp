@@ -4,9 +4,9 @@
 #include "constants.h"
 
 /**
- * Display help menu
+ * Displays help menu.
  *
- * @param program Program name (argv[0])
+ * @param program program name (argv[0])
  */
 void show_help(const std::string &program) {
     std::cout << ansi::BOLD << "USAGE: " << program << ansi::RESET
@@ -25,49 +25,22 @@ void show_help(const std::string &program) {
 }
 
 /**
- * Get file if it exists
+ * Compresses file using a modified LZW compression algorithm.
  *
- * @param name File name
- * @return input stream for file
- */
-std::ifstream find_file(const std::string &name) {
-    std::ifstream file(name);
-    if (!file.is_open()) {
-        std::cout << ansi::BOLD_RED << "ERROR: file " << name
-                  << " not found or could not be opened"
-                  << ansi::RESET << std::endl;
-        file.close();
-        exit(1);
-    }
-
-    return file;
-}
-
-/**
- * Compress file using a modified LZW compression algorithm
- *
- * @param name File name
+ * @param name file name
  * @param reset Whether to reset LZW keys dictionary
  */
 void compress(const std::string &name, const bool reset) {
-    std::ifstream file = find_file(name);
-
     // TODO: Implement LZW compress
-
-    file.close();
 }
 
 /**
- * Decompress file using a modified LZW decompression algorithm
+ * Decompresses file using a modified LZW decompression algorithm.
  *
- * @param name File name
+ * @param name file name
  */
 void decompress(const std::string &name) {
-    std::ifstream file = find_file(name);
-
     // TODO: Implement LZW decompress
-
-    file.close();
 }
 
 int main(int argc, char **argv) {

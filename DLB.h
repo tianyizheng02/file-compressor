@@ -4,7 +4,6 @@
 #include <string>
 
 class DLB {
-
 public:
     struct Node {
         char c;
