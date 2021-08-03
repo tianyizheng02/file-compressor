@@ -27,7 +27,7 @@ void BinaryIn::open(const std::string &name) {
  */
 void BinaryIn::close() {
     if (!file.is_open()) {
-        std::cout << ansi::BOLD_RED << "ERROR: no open file to close"
+        std::cout << ansi::BOLD_RED << "ERROR: no open input file to close"
                   << ansi::RESET << std::endl;
         exit(1);
     }
@@ -79,31 +79,28 @@ bool BinaryIn::read_bit() {
 /**
  * Reads bits from input file stream.
  *
- * @param B number of bits
+ * @param n number of bits
  * @return bits from input file stream as int
  */
-int BinaryIn::read_bits(const int B) {
+int BinaryIn::read_bits(const int n) {
     if (is_empty()) {
         std::cout << ansi::BOLD_RED << "ERROR: EOF reached while reading bits"
                   << ansi::RESET << std::endl;
         exit(1);
     }
 
-    if (B < 1 || B > 32) {
+    if (n < 1 || n > 32) {
         std::cout << ansi::BOLD_RED
                   << "ERROR: Invalid number of bits while reading bits"
                   << ansi::RESET << std::endl;
         exit(1);
     }
 
-    if (B % 8 == 0) return read_bytes(B / 8);   // Read whole bytes
+    if (n % 8 == 0) return read_bytes(n / 8);   // Read whole bytes
 
     // Read bits one at a time
     int x = 0;
-    for (int i = 0; i < B; ++i) {
-        x <<= 1;
-        x |= read_bit();
-    }
+    for (int i = 0; i < n; ++i) x = (x << 1) | read_bit();
 
     return x;
 }
@@ -111,7 +108,7 @@ int BinaryIn::read_bits(const int B) {
 /**
  * Reads byte from input file stream.
  *
- * @return byte from input file stream as byte
+ * @return byte from input file stream as char
  */
 char BinaryIn::read_byte() {
     if (is_empty()) {
@@ -144,31 +141,26 @@ char BinaryIn::read_byte() {
 /**
  * Reads bytes from input file stream.
  *
- * @param B number of bytes
- * @return bytes from input file stream as bytes
+ * @param n number of bytes
+ * @return bytes from input file stream as int
  */
-int BinaryIn::read_bytes(const int B) {
+int BinaryIn::read_bytes(const int n) {
     if (is_empty()) {
         std::cout << ansi::BOLD_RED << "ERROR: EOF reached while reading bytes"
                   << ansi::RESET << std::endl;
         exit(1);
     }
 
-    if (B < 0 || B > 4) {
+    if (n < 1 || n > 4) {
         std::cout << ansi::BOLD_RED
                   << "ERROR: Invalid number of bytes while reading bytes"
                   << ansi::RESET << std::endl;
         exit(1);
     }
 
-    if (B == 1) return read_byte();
-
     // Read bytes one at a time
     int x = 0;
-    for (int i = 0; i < B; ++i) {
-        x <<= 8;
-        x |= read_byte();
-    }
+    for (int i = 0; i < n; ++i) x = (x << 8) | read_byte();
 
     return x;
 }
