@@ -1,7 +1,15 @@
 #include <iostream>
-#include <fstream>
 #include <getopt.h>
+#include "binaryin.h"
+#include "binaryout.h"
 #include "constants.h"
+#include "DLB.h"
+
+const unsigned int R = 256;     // Number of input chars
+const unsigned char L_MIN = 9;  // Min length of codewords
+const unsigned char L_MAX = 16; // Max length of codewords
+unsigned char L = L_MIN;        // Length of codewords
+unsigned int N = 1 << L;        // Number of codewords (2^W)
 
 /**
  * Displays help menu.
@@ -25,13 +33,77 @@ void show_help(const std::string &program) {
 }
 
 /**
+ * Initialize DLB trie with all 8-bit ASCII values.
+ *
+ * @return initialized DLB
+ */
+DLB init_trie() {
+    DLB trie;
+    for (int i = 0; i < R; ++i) trie.add(std::string(1, (char) i), i);
+    return trie;
+}
+
+/**
+ * Increase codeword length by 1 and double number of codewords.
+ */
+void extend_codes() {
+    ++L;
+    N <<= 1;
+}
+
+/**
+ * Reset codeword length and number of codewords to default min values.
+ */
+void reset_codes() {
+    L = L_MIN;
+    N = 1 << L;
+}
+
+/**
  * Compresses file using a modified LZW compression algorithm.
  *
  * @param name file name
  * @param reset Whether to reset LZW keys dictionary
  */
 void compress(const std::string &name, const bool reset) {
-    // TODO: Implement LZW compress
+    BinaryIn in(name);
+    BinaryOut out(name + ".lzw");
+
+    DLB trie = init_trie();
+    int code = R + 1;   // Value R reserved for EOF
+
+    out.write_bit(reset);   // Flag for reset
+    std::string match;
+    std::string to_add;
+
+    while (!in.is_empty()) {
+        char next = in.read_byte();
+        to_add += next;
+
+        if (trie.is_prefix(to_add)) {
+            match += next;  // Longest prefix not found yet
+        } else {
+            out.write_bits(trie.get(match), L);
+            if (code >= N && L < L_MAX) extend_codes();
+
+            if (code < N) {
+                trie.add(to_add, code++);
+            } else if (L >= L_MAX && reset) {
+                trie = init_trie();
+                reset_codes();
+                code = R + 1;
+            }
+
+            // Reset for next match
+            match = next;
+            to_add = next;
+        }
+    }
+
+    out.write_bits(trie.get(match), L); // Write final remaining match
+    out.write_bits(R, L);   // Write EOF
+    out.close();
+    in.close();
 }
 
 /**
