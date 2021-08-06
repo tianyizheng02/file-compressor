@@ -1,5 +1,23 @@
 #include "DLB.h"
 
+DLB::~DLB() {
+    delete_all(root);
+}
+
+/**
+ * Frees dynamically allocated memory for node, its sibling, and its child.
+ *
+ * @param node current node
+ */
+void DLB::delete_all(Node *node) {
+    if (node == nullptr) return;
+
+    delete_all(node->right);
+    delete_all(node->down);
+
+    delete node;
+}
+
 /**
  * Gets value of key in trie.
  *
@@ -11,12 +29,12 @@ int DLB::get(const std::string &key) {
 
     Node *curr = root;
     for (int i = 0; i < key.length(); ++i) {
-        while (curr != nullptr && curr->c != key[i]) curr = curr->next;
+        while (curr != nullptr && curr->c != key[i]) curr = curr->right;
 
         if (curr == nullptr) return -1;
 
-        // Only descend to next level if not last char
-        if (i != key.length() - 1) curr = curr->child;
+        // Descend if not last char
+        if (i != key.length() - 1) curr = curr->down;
     }
 
     return curr->val;
@@ -38,20 +56,20 @@ void DLB::add(const std::string &key, const int val) {
     for (int i = 0; i < key.length(); ++i) {
         while (curr->c != key[i]) {
             // Add new node to current level if char not found
-            if (curr->next == nullptr) {
-                curr->next = new Node{key[i], -1, nullptr, nullptr};
-                curr = curr->next;
+            if (curr->right == nullptr) {
+                curr->right = new Node{key[i], -1, nullptr, nullptr};
+                curr = curr->right;
                 break;
             }
 
-            curr = curr->next;
+            curr = curr->right;
         }
 
-        // Only descend to next level if not last char
+        // Descend if not last char
         if (i != key.length() - 1) {
-            if (curr->child == nullptr)
-                curr->child = new Node{key[i + 1], -1, nullptr, nullptr};
-            curr = curr->child;
+            if (curr->down == nullptr)
+                curr->down = new Node{key[i + 1], -1, nullptr, nullptr};
+            curr = curr->down;
         }
     }
 
@@ -69,11 +87,11 @@ bool DLB::is_prefix(const std::string &key) {
 
     Node *curr = root;
     for (char c : key) {
-        while (curr != nullptr && curr->c != c) curr = curr->next;
+        while (curr != nullptr && curr->c != c) curr = curr->right;
 
         if (curr == nullptr) return false;
 
-        curr = curr->child;
+        curr = curr->down;
     }
 
     return true;

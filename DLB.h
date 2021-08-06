@@ -8,11 +8,13 @@ public:
     struct Node {
         char c;
         int val;
-        Node *next;
-        Node *child;
+        Node *right;
+        Node *down;
     };
 
     DLB() = default;
+
+    ~DLB();
 
     int get(const std::string &key);
 
@@ -22,6 +24,8 @@ public:
 
 private:
     Node *root = nullptr;
+
+    void delete_all(Node *node);
 };
 
 #endif
