@@ -1,15 +1,10 @@
 #include <iostream>
 #include <getopt.h>
+#include <vector>
 #include "binaryin.h"
 #include "binaryout.h"
 #include "constants.h"
 #include "DLB.h"
-
-const unsigned int R = 256;     // Number of input chars
-const unsigned char L_MIN = 9;  // Min length of codewords
-const unsigned char L_MAX = 16; // Max length of codewords
-unsigned char L = L_MIN;        // Length of codewords
-unsigned int N = 1 << L;        // Number of codewords (2^W)
 
 /**
  * Displays help menu.
@@ -35,28 +30,20 @@ void show_help(const std::string &program) {
 /**
  * Initialize DLB trie with all 8-bit ASCII values.
  *
- * @return initialized DLB
+ * @param trie DLB trie
  */
-DLB init_trie() {
-    DLB trie;
-    for (int i = 0; i < R; ++i) trie.add(std::string(1, (char) i), i);
-    return trie;
+void init_trie(DLB &trie) {
+    for (int i = 0; i < lzw::R; ++i) trie.add(std::string(1, (char) i), i);
 }
 
 /**
- * Increase codeword length by 1 and double number of codewords.
+ * Initialize symbol table with all 8-bit ASCII values.
+ *
+ * @param st symbol table
  */
-void extend_codes() {
-    ++L;
-    N <<= 1;
-}
-
-/**
- * Reset codeword length and number of codewords to default min values.
- */
-void reset_codes() {
-    L = L_MIN;
-    N = 1 << L;
+void init_symbol_table(std::vector<std::string> &st) {
+    for (int i = 0; i < lzw::R; ++i) st[i] = std::string(1, (char) i);
+    st[lzw::R] = "";
 }
 
 /**
@@ -67,10 +54,14 @@ void reset_codes() {
  */
 void compress(const std::string &name, const bool reset) {
     BinaryIn in(name);
-    BinaryOut out(name + ".lzw");
+    BinaryOut out(name.substr(0, name.find_last_of('.')) + lzw::EXT_C);
 
-    DLB trie = init_trie();
-    int code = R + 1;   // Value R reserved for EOF
+    unsigned char L = lzw::L_MIN;   // Length of codewords
+    unsigned int N = 1 << L;        // Number of codewords (2^W)
+
+    DLB trie;
+    init_trie(trie);
+    int code = lzw::R + 1;  // Value R reserved for EOF
 
     out.write_bit(reset);   // Flag for reset
     std::string match;
@@ -84,24 +75,34 @@ void compress(const std::string &name, const bool reset) {
             match += next;  // Longest prefix not found yet
         } else {
             out.write_bits(trie.get(match), L);
-            if (code >= N && L < L_MAX) extend_codes();
+
+            // Extend codewords
+            if (code >= N && L < lzw::L_MAX) {
+                ++L;
+                N <<= 1;
+            }
 
             if (code < N) {
                 trie.add(to_add, code++);
-            } else if (L >= L_MAX && reset) {
-                trie = init_trie();
-                reset_codes();
-                code = R + 1;
+            } else if (L >= lzw::L_MAX && reset) {
+                // Reset codewords
+                L = lzw::L_MIN;
+                N = 1 << L;
+
+                // Reset trie
+                trie = DLB();
+                init_trie(trie);
+                code = lzw::R + 1;
             }
 
-            // Reset for next match
+            // Reset strings for next match
             match = next;
             to_add = next;
         }
     }
 
     out.write_bits(trie.get(match), L); // Write final remaining match
-    out.write_bits(R, L);   // Write EOF
+    out.write_bits(lzw::R, L);   // Write EOF
     out.close();
     in.close();
 }
@@ -112,7 +113,59 @@ void compress(const std::string &name, const bool reset) {
  * @param name file name
  */
 void decompress(const std::string &name) {
-    // TODO: Implement LZW decompress
+    BinaryIn in(name);
+    BinaryOut out(name.substr(0, name.find_last_of('.')) + lzw::EXT_D);
+
+    unsigned char L = lzw::L_MIN;   // Length of codewords
+    unsigned int N = 1 << L;        // Number of codewords (2^W)
+
+    std::vector<std::string> st(N);
+    init_symbol_table(st);
+    int i = lzw::R + 1; // Index R reserved for EOF
+    bool reset = in.read_bit(); // Flag for reset
+
+    // Input is always one step ahead of output
+    int codeword = in.read_bits(L);
+    std::string val = st[codeword];
+    out.write_str(val);
+
+    for (codeword = in.read_bits(L); codeword != lzw::R;
+         codeword = in.read_bits(L)) {
+        std::string s;
+        if (i == codeword) s = val + val[0];    // Edge case
+        else s = st[codeword];
+
+        if (i < N) st[i++] = val + s[0];
+
+        val = s;
+        out.write_str(val);
+
+        if (i >= N) {
+            if (L < lzw::L_MAX) {
+                // Extend codewords
+                ++L;
+                N <<= 1;
+                st.resize(N);
+            } else if (reset) {
+                // Reset codewords
+                L = lzw::L_MIN;
+                N = 1 << L;
+
+                // Reset symbol table
+                st = std::vector<std::string>(N);
+                init_symbol_table(st);
+                i = lzw::R + 1;
+
+                // Read extra codeword after reset
+                codeword = in.read_bits(L);
+                val = st[codeword];
+                out.write_str(val);
+            }
+        }
+    }
+
+    out.close();
+    in.close();
 }
 
 int main(int argc, char **argv) {
@@ -169,8 +222,39 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if (comp) while (optind < argc) compress(argv[optind++], reset);
-    else while (optind < argc) decompress(argv[optind++]);
+    if (comp) {
+        while (optind < argc) {
+            std::string file = argv[optind++];
+            size_t ext_pos = file.find_last_of('.');
+            if (ext_pos != std::string::npos) {
+                if (file.substr(ext_pos) == lzw::EXT_C) {
+                    std::cout << file << " is already compressed; skipping..."
+                              << std::endl; // Skip file if already compressed
+                } else {
+                    compress(file, reset);
+                }
+            } else {
+                std::cout << "Invalid file name \"" << file << "\"; skipping..."
+                          << std::endl; // No extension detected
+            }
+        }
+    } else {
+        while (optind < argc) {
+            std::string file = argv[optind++];
+            size_t ext_pos = file.find_last_of('.');
+            if (ext_pos != std::string::npos) {
+                if (file.substr(ext_pos) == lzw::EXT_C) {
+                    decompress(file);
+                } else {
+                    std::cout << file << " is not compressed; skipping..."
+                              << std::endl; // Skip file if not compressed
+                }
+            } else {
+                std::cout << "Invalid file name \"" << file << "\"; skipping..."
+                          << std::endl; // No extension detected
+            }
+        }
+    }
 
     return 0;
 }

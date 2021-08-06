@@ -19,6 +19,8 @@ public:
 
     void write_bytes(int C, int n);
 
+    void write_str(const std::string &str);
+
 private:
     std::ofstream file;
     unsigned char buffer = 0;

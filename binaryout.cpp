@@ -128,3 +128,12 @@ void BinaryOut::write_bytes(const int C, const int n) {
     for (int i = (n - 1) * 8; i >= 0; i -= 8)
         write_byte((char) ((C >> i) & 0xFF));
 }
+
+/**
+ * Writes string to output file stream.
+ *
+ * @param str string
+ */
+void BinaryOut::write_str(const std::string &str) {
+    for (char c : str) write_byte(c);
+}

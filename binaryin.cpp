@@ -135,7 +135,8 @@ char BinaryIn::read_byte() {
     }
 
     // N bits of buffer + (8 - N) bits of next char
-    return (char) (c | (buffer >> temp_N));
+    N = temp_N;
+    return (char) (c | (buffer >> N));
 }
 
 /**
@@ -160,7 +161,7 @@ int BinaryIn::read_bytes(const int n) {
 
     // Read bytes one at a time
     int x = 0;
-    for (int i = 0; i < n; ++i) x = (x << 8) | read_byte();
+    for (int i = 0; i < n; ++i) x = (x << 8) | (read_byte() & 0xFF);
 
     return x;
 }
